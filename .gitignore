@@ -10,6 +10,8 @@ __pycache__/
 /artifacts/
 /dist/
 /downloads/
+web/node_modules/
+web/dist/
 *.onnx
 *.onnx.data
 *.pt

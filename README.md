@@ -311,6 +311,27 @@ uv run focalnet predict-human artifacts/focalnet-human.onnx photo.jpg \
   --aspect-ratio 16:9
 ```
 
+### Browser demo
+
+A static crop lab under `web/` runs the same format-v2 ONNX in the browser with
+ONNX Runtime Web. Photos stay on-device. The 19.45 MiB weights are gitignored;
+fetch them from the Modal volume, then start Vite or publish the build with
+[yeet.page](https://yeet.page/):
+
+```sh
+cd web
+npm install
+bash scripts/fetch-model.sh
+npm test
+npm run dev
+npm run build
+npx --yes @dittmann/yeet dist
+```
+
+The demo compares the human-ranked crop with the importance-retention crop from
+the same map. The yeet URL is unlisted, not private: anyone with the link can
+download `focalnet-human.onnx`.
+
 At inference, FocalNet generates up to 125 crops over five positions and five
 zoom levels, scores all of them in one ONNX call, and chooses the highest human
 preference score among candidates within five percentage points of the best

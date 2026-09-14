@@ -1,0 +1,20 @@
+{
+  "name": "focalnet-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "test": "vitest run",
+    "fetch-model": "bash scripts/fetch-model.sh"
+  },
+  "dependencies": {
+    "onnxruntime-web": "^1.23.2"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0"
+  }
+}
