@@ -7,6 +7,8 @@ name = "focalnet"
 version = "0.1.0"
 description = "Distill image saliency and face priority into a tiny crop-importance network."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11,<3.14"
 dependencies = [
   "httpx>=0.28,<1",
