@@ -1,24 +1,24 @@
-# RepViT-M0.9 500k training result
+# Reference importance-model results
 
-Completed September 13, 2026. The model was trained from a pretrained
-RepViT-M0.9 encoder with a 48-channel FPN decoder. The dataset contains 500,000
-Open Images V7 images labeled by the U²-Net + YuNet teacher: 490,000 for training
-and a fixed, group-disjoint 10,000-image validation set. Training ran for all 10
-planned epochs on a Modal L40S. Epoch 7 produced the best validation loss and is
-the exported checkpoint.
+The reference model uses a pretrained RepViT-M0.9 encoder and a 48-channel
+feature-pyramid decoder. It was trained for 10 epochs on 500,000 Open Images V7
+samples labeled by the U²-Net + YuNet teacher. The fixed, group-disjoint split
+contains 490,000 training images and 10,000 validation images. Epoch 7 produced
+the lowest validation loss and was selected for export.
 
 | Property | Result |
 | --- | ---: |
 | Parameters | 4,750,625 |
 | FP32 ONNX size | 20,184,361 bytes (19.25 MiB) |
-| Best train loss | 0.32967 at epoch 7 |
-| Best validation loss | 0.34754 at epoch 7 |
-| Modal metered cost through final verification | $31.04 |
+| Best training loss | 0.32967 |
+| Best validation loss | 0.34754 |
+| Training accelerator | NVIDIA L40S |
 
-## Held-out quality
+## Teacher agreement
 
-The production FP32 ONNX model was evaluated on all 10,000 validation images.
-The reference is the teacher importance map, rather than a human crop judgment.
+The FP32 ONNX checkpoint was evaluated on the complete 10,000-image validation
+split. These metrics use the teacher importance map as the reference; they do
+not measure human crop preference or segmentation quality.
 
 | Metric | Result |
 | --- | ---: |
@@ -31,50 +31,51 @@ The reference is the teacher importance map, rather than a human crop judgment.
 | 4:5 teacher importance retained | 85.56% |
 | 4:5 oracle / centered crop | 87.91% / 79.87% |
 
-On the exact first 1,000 validation records used to evaluate the earlier 100k
-model, expanding the training set reduced map MAE by 7.36% and centroid error by
-3.97%. Crop retention was effectively flat for 1:1 and increased by 0.19 and
-0.09 percentage points for 16:9 and 4:5.
+On the same 1,000 validation records used for the earlier 100,000-image
+experiment, expanding the training set reduced map MAE by 7.36% and centroid
+error by 3.97%. Crop retention was effectively unchanged at 1:1 and increased
+by 0.19 and 0.09 percentage points at 16:9 and 4:5.
 
-These results show close imitation of the U²-Net + YuNet teacher for the tested
-crop ratios. They do not show equivalence to U²-Net segmentation, because
-FocalNet predicts a task-specific importance map. They also do not measure human
-composition preferences. A curated human-rated cropping set is the next useful
-quality gate.
+The experiment demonstrates close imitation of the teacher for the measured
+crop ratios. FocalNet predicts a task-specific importance map, so these results
+do not establish equivalence to U²-Net segmentation. Human composition quality
+is evaluated separately in [the crop-ranking report](results-cpc-gaic-v2.md).
 
-## Mac mini latency
+## CPU latency
 
-Measured on the spare arm64 Mac mini with ONNX Runtime 1.29.0, batch size one,
-50 iterations after five warmups. Full pipeline time includes reading and
-decoding the image, preprocessing, inference, focal-point calculation, and a
-square crop. It excludes model startup and service overhead.
+Sequential batch-one latency was measured on an Apple Silicon arm64 host with
+ONNX Runtime 1.29.0. Each result covers 50 iterations after five warmups. The
+pipeline measurement includes image read and decode, preprocessing, inference,
+focal-point calculation, and square-crop selection. Model startup and service
+overhead are excluded.
 
 | CPU threads | Forward median / p95 | Full pipeline median / p95 |
 | ---: | ---: | ---: |
 | 1 | 33.44 / 33.67 ms | 40.84 / 42.85 ms |
 | 4 | 11.35 / 11.39 ms | 17.58 / 19.94 ms |
 
-## Artifact decision
+These measurements characterize one hardware and runtime configuration. Measure
+the complete service on its deployment target before setting latency or
+throughput expectations.
 
-The FP32 ONNX model passed ONNX validation, embedded/sidecar metadata equality,
-checkpoint hash verification, and a real-image inference smoke test. RepViT
-branch fusion exceeded the strict pointwise parity tolerance for this trained
-checkpoint, so the verified export preserves the unfused graph. The runtime
-contract uses ONNX Runtime's CPU provider with graph optimizations disabled; its
-details and measured export error are embedded in the artifact.
+## Export and quantization
 
-Post-training INT8 was rejected. Static S8/S8 quantization reduced 16:9 crop
-retention to 84.90%, below the 85.36% centered baseline. U8/S8 and dynamic INT8
-experiments also lost too much quality. The rejected files are kept only under
-the run's `experiments/` directory and must not be deployed.
+The FP32 artifact passed ONNX validation, embedded/sidecar metadata comparison,
+checkpoint-hash verification, and real-image inference. RepViT branch fusion
+exceeded the strict pointwise parity tolerance for this checkpoint, so the
+verified export retains the unfused graph. The ONNX metadata records the runtime
+contract and measured export error.
 
-Production artifact SHA-256:
+Post-training INT8 did not pass the crop-quality gate. Static S8/S8 quantization
+reduced 16:9 crop retention to 84.90%, below the 85.36% centered baseline. U8/S8
+and dynamic INT8 variants also lost too much quality. A reduced-precision release
+would require quantization-aware training or another compact backbone.
+
+Reference hashes:
 
 ```text
 focalnet.onnx  87becceb269a2973c359df789783be49a9f840f47170a015d3776d7c4145a2ce
 best.pt        d1942f0652f8ea85f75ffc0cb1bf40d7e70b38e7ad102ab0e6df5c2e07ce52cf
 ```
 
-The complete evaluation report, training history, metadata sidecar, benchmarks,
-and checkpoint live beside the local artifact in `downloads/modal-run-500k/` and
-in the Modal Volume at `runs/repvit-m0-9-500k-v2/`.
+The files identified by these hashes are not distributed in this repository.

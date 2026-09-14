@@ -5,15 +5,24 @@ cd "$(dirname "$0")/.."
 PATH="$HOME/.local/bin:$PATH"
 export PATH
 
-ROOT=${HUMAN_CROP_DATA_ROOT:-/Volumes/SanDisk/focalnet-downloads/human-crops}
+ROOT=${FOCALNET_HUMAN_DATA_ROOT:-data/human-crops}
+OUTPUT_ROOT=${FOCALNET_OUTPUT_ROOT:-artifacts}
 CPC_ROOT="$ROOT/cpc"
 GAIC_ROOT="$ROOT/gaicd-v2"
 CPC_ARCHIVE="$CPC_ROOT/CPCDataset.tar.gz"
 GAIC_ARCHIVE="$GAIC_ROOT/GAIC.zip"
 CPC_SHA256=dfa4ec73c9d9b4b525a8f79aee5670fac4797bad2eb1bd0e1f26f051ac3a7281
 GAIC_SHA256=b895a3f9e03c8f70c37194370441dc2f17bb60e0ab437447ee240b003cd6550b
-CPC_RUN=downloads/modal-run-cpc-pretrain
-FINAL_RUN=downloads/modal-run-cpc-gaic-lr3e4
+CPC_RUN="$OUTPUT_ROOT/reference-cpc-pretrain"
+FINAL_RUN="$OUTPUT_ROOT/reference-cpc-gaic"
+
+sha256_file() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  else
+    shasum -a 256 "$1" | awk '{print $1}'
+  fi
+}
 
 mkdir -p "$CPC_ROOT" "$GAIC_ROOT" "$CPC_RUN" "$FINAL_RUN"
 if [ ! -f "$CPC_ARCHIVE" ]; then
@@ -25,8 +34,8 @@ if [ ! -f "$GAIC_ARCHIVE" ]; then
     --output "$GAIC_ARCHIVE"
 fi
 
-test "$(shasum -a 256 "$CPC_ARCHIVE" | awk '{print $1}')" = "$CPC_SHA256"
-test "$(shasum -a 256 "$GAIC_ARCHIVE" | awk '{print $1}')" = "$GAIC_SHA256"
+test "$(sha256_file "$CPC_ARCHIVE")" = "$CPC_SHA256"
+test "$(sha256_file "$GAIC_ARCHIVE")" = "$GAIC_SHA256"
 
 uv sync --frozen --extra train
 uvx modal volume put -f focalnet-data "$CPC_ARCHIVE" /datasets/cpc/CPCDataset.tar.gz
