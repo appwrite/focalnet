@@ -42,14 +42,93 @@ def test_parse_strips_markdown_and_rejects_bad_boxes():
     annotation = parse_annotation(payload)
     assert annotation.subjects[0].kind == "object"
     assert annotation.must_contain == (0,)
+    swapped = parse_annotation(
+        {
+            "subjects": [
+                {"label": "x", "importance": 1, "x1": 0.9, "y1": 0.1, "x2": 0.2, "y2": 0.3}
+            ]
+        }
+    )
+    assert swapped.subjects[0].box == pytest.approx((0.2, 0.1, 0.9, 0.3))
     with pytest.raises(ValueError, match="normalized"):
         parse_annotation(
             {
                 "subjects": [
-                    {"label": "x", "importance": 1, "x1": 0.9, "y1": 0.1, "x2": 0.2, "y2": 0.3}
+                    {"label": "x", "importance": 1, "x1": 0.5, "y1": 0.1, "x2": 0.5, "y2": 0.3}
                 ]
             }
         )
+    permille = parse_annotation(
+        {
+            "subjects": [
+                {
+                    "label": "dunk",
+                    "importance": 1,
+                    "kind": "person",
+                    "x1": 180,
+                    "y1": 30,
+                    "x2": 720,
+                    "y2": 950,
+                }
+            ],
+            "must_contain": [0],
+        }
+    )
+    assert permille.subjects[0].box == pytest.approx((0.18, 0.03, 0.72, 0.95))
+    gemini = parse_annotation(
+        {
+            "subjects": [
+                {
+                    "label": "dunking player",
+                    "importance": 1.0,
+                    "kind": "person",
+                    "x1": 305,
+                    "y1": 108,
+                    "x2": 718,
+                    "y2": 964,
+                },
+                {
+                    "label": "basketball and rim",
+                    "importance": 1.0,
+                    "kind": "object",
+                    "x1": 235,
+                    "y1": 83,
+                    "x2": 671,
+                    "y2": 312,
+                },
+                {
+                    "label": "player 13",
+                    "importance": 0.7,
+                    "kind": "person",
+                    "x1": 702,
+                    "y1": 548,
+                    "x2": 994,
+                    "y2": 998,
+                },
+            ],
+            "keep_together": [0, 1, 2],
+            "must_contain": [0, 1],
+        }
+    )
+    assert gemini.subjects[0].box == pytest.approx((0.305, 0.108, 0.718, 0.964))
+    pixels = parse_annotation(
+        {
+            "subjects": [
+                {
+                    "label": "ball",
+                    "importance": 1,
+                    "kind": "object",
+                    "x1": 500,
+                    "y1": 300,
+                    "x2": 1500,
+                    "y2": 1200,
+                }
+            ],
+            "must_contain": [0],
+        },
+        image_size=(2000, 1500),
+    )
+    assert pixels.subjects[0].box == pytest.approx((0.25, 0.2, 0.75, 0.8))
 
 
 def test_action_map_keeps_full_pose_where_face_map_clips():

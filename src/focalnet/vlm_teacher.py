@@ -34,8 +34,9 @@ BAKEOFF_MODELS = (
 )
 KINDS = frozenset({"face", "person", "animal", "text", "product", "object", "other"})
 REGION_PROMPT = """\
-Return JSON only, no markdown. Coordinates are normalized to the full image: \
-x1,y1 is the top-left and x2,y2 is the bottom-right, each in [0, 1].
+Return JSON only, no markdown. Coordinates MUST be floats in [0, 1] \
+relative to the full image (not pixels, not 0-100, not 0-1000). \
+x1,y1 is the top-left and x2,y2 is the bottom-right.
 
 Describe what a content-aware crop should keep, not just faces.
 - Action, sports, dance, and jumping: include a high-importance box on the \
@@ -61,6 +62,8 @@ Schema:
 importance is how much a crop must keep that subject (0-1).
 keep_together and must_contain are 0-based indices into subjects.
 must_contain lists boxes a valid crop may not clip.
+keep_together must be a subset of must_contain. Do not include background
+spectators unless they are the subject.
 """
 
 
@@ -128,7 +131,42 @@ def _index_list(values: object, count: int, field: str) -> tuple[int, ...]:
     return tuple(indexes)
 
 
-def parse_annotation(payload: dict) -> VlmAnnotation:
+def _normalize_box(
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+    *,
+    image_size: tuple[int, int] | None = None,
+) -> tuple[float, float, float, float]:
+    values = [x1, y1, x2, y2]
+    if not np.isfinite(values).all():
+        raise ValueError("Subject box must be finite")
+    peak = max(abs(value) for value in values)
+    if peak > 1:
+        if peak <= 100:
+            x1, y1, x2, y2 = x1 / 100, y1 / 100, x2 / 100, y2 / 100
+        elif peak <= 1000:
+            x1, y1, x2, y2 = x1 / 1000, y1 / 1000, x2 / 1000, y2 / 1000
+        elif image_size is not None and min(image_size) > 0:
+            width, height = image_size
+            x1, x2 = x1 / width, x2 / width
+            y1, y2 = y1 / height, y2 / height
+        else:
+            raise ValueError("Subject box must be normalized with x1<x2 and y1<y2")
+    x1, y1, x2, y2 = (float(np.clip(value, 0, 1)) for value in (x1, y1, x2, y2))
+    if x1 > x2:
+        x1, x2 = x2, x1
+    if y1 > y2:
+        y1, y2 = y2, y1
+    if not 0 <= x1 < x2 <= 1 or not 0 <= y1 < y2 <= 1:
+        raise ValueError("Subject box must be normalized with x1<x2 and y1<y2")
+    return x1, y1, x2, y2
+
+
+def parse_annotation(
+    payload: dict, *, image_size: tuple[int, int] | None = None
+) -> VlmAnnotation:
     raw = payload.get("subjects")
     if not isinstance(raw, list) or not raw:
         raise ValueError("Annotation needs a nonempty subjects list")
@@ -141,17 +179,16 @@ def parse_annotation(payload: dict) -> VlmAnnotation:
             importance = float(item.get("importance", 0))
         except (TypeError, ValueError, KeyError) as exc:
             raise ValueError("Subject needs finite x1,y1,x2,y2 and importance") from exc
-        if not np.isfinite(box).all() or not np.isfinite(importance):
+        if not np.isfinite(importance):
             raise ValueError("Subject needs finite x1,y1,x2,y2 and importance")
-        if not 0 <= box[0] < box[2] <= 1 or not 0 <= box[1] < box[3] <= 1:
-            raise ValueError("Subject box must be normalized with x1<x2 and y1<y2")
+        x1, y1, x2, y2 = _normalize_box(*box, image_size=image_size)
         if not 0 <= importance <= 1:
             raise ValueError("Subject importance must be in [0, 1]")
         kind = str(item.get("kind", "other")).strip().lower() or "other"
         if kind not in KINDS:
             kind = "other"
         label = str(item.get("label", kind)).strip() or kind
-        subjects.append(Subject(label, importance, kind, *box))
+        subjects.append(Subject(label, importance, kind, x1, y1, x2, y2))
     count = len(subjects)
     return VlmAnnotation(
         tuple(subjects),
@@ -173,8 +210,12 @@ def region_importance_target(annotation: VlmAnnotation, size: int = MAP_SIZE) ->
     yy, xx = np.meshgrid(
         (np.arange(size) + 0.5) / size, (np.arange(size) + 0.5) / size, indexing="ij"
     )
-    for subject in annotation.subjects:
-        if subject.importance <= 0:
+    required = set(annotation.must_contain)
+    for index, subject in enumerate(annotation.subjects):
+        importance = subject.importance
+        if required and index not in required:
+            importance = min(importance, 0.2)
+        if importance <= 0:
             continue
         filled = (
             (xx >= subject.x1) & (xx <= subject.x2) & (yy >= subject.y1) & (yy <= subject.y2)
@@ -189,7 +230,7 @@ def region_importance_target(annotation: VlmAnnotation, size: int = MAP_SIZE) ->
             )
         )
         region = filled + 0.25 * gaussian
-        heatmap += region / region.sum() * subject.importance
+        heatmap += region / region.sum() * importance
     peak = heatmap.max()
     return (heatmap / peak if peak else heatmap).astype(np.float32)
 
@@ -295,7 +336,10 @@ class OpenRouterTeacher:
                 if not choices:
                     raise ValueError("OpenRouter response is missing choices")
                 message = choices[0].get("message") or {}
-                annotation = parse_annotation(parse_json_content(str(message.get("content") or "")))
+                annotation = parse_annotation(
+                    parse_json_content(str(message.get("content") or "")),
+                    image_size=image.size,
+                )
                 usage = body.get("usage") if isinstance(body.get("usage"), dict) else {}
                 return annotation, {"model": self.model, "usage": usage}
             except (httpx.HTTPError, json.JSONDecodeError, ValueError, KeyError, IndexError) as exc:
