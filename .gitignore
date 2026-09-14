@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.DS_Store
+/data/
+/runs/
+/artifacts/
+/dist/
+/downloads/
+*.onnx
+*.onnx.data
+*.pt

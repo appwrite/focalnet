@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "focalnet"
+version = "0.1.0"
+description = "Distill image saliency and face priority into a tiny crop-importance network."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+  "httpx>=0.28,<1",
+  "numpy>=1.26,<3",
+  "pillow>=11,<13",
+  "onnxruntime>=1.23.2,<2",
+]
+
+[project.optional-dependencies]
+train = [
+  "torch>=2.6,<3",
+  "timm>=1.0.15,<2",
+  "onnx>=1.17,<2",
+  "onnxscript>=0.3,<1",
+]
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "ruff>=0.11,<1"]
+
+[project.scripts]
+focalnet = "focalnet.cli:main"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: real model inference or ONNX export"]
