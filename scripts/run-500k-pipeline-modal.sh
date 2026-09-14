@@ -5,10 +5,13 @@ cd "$(dirname "$0")/.."
 PATH="$HOME/.local/bin:$PATH"
 export PATH
 
-IMAGES=downloads/open-images-v7-extension-400k
-OLD_IMAGES=downloads/open-images-v7-100k/images.jsonl
-MODELS=downloads/teacher-models
-RUN=downloads/modal-run-500k
+DATA_ROOT=${FOCALNET_DATA_ROOT:-data}
+MODEL_ROOT=${FOCALNET_MODEL_ROOT:-models}
+OUTPUT_ROOT=${FOCALNET_OUTPUT_ROOT:-artifacts}
+IMAGES="$DATA_ROOT/open-images-v7-extension-400k"
+OLD_IMAGES="$DATA_ROOT/open-images-v7-100k/images.jsonl"
+RUN="$OUTPUT_ROOT/reference-500k"
+VALIDATION_MANIFEST=${FOCALNET_VALIDATION_MANIFEST:-$DATA_ROOT/splits-v1/val.jsonl}
 
 uv sync --frozen
 
@@ -25,8 +28,8 @@ uvx modal volume put -f focalnet-data "$IMAGES/candidates-with-metadata.jsonl" \
   /open-images-v7-extension-400k/candidates-with-metadata.jsonl
 uvx modal volume put -f focalnet-data "$IMAGES/provenance.json" \
   /open-images-v7-extension-400k/provenance.json
-uvx modal volume put -f focalnet-data "$MODELS/u2net.onnx" /teacher-models/u2net.onnx
-uvx modal volume put -f focalnet-data "$MODELS/face_detection_yunet_2023mar.onnx" \
+uvx modal volume put -f focalnet-data "$MODEL_ROOT/u2net.onnx" /teacher-models/u2net.onnx
+uvx modal volume put -f focalnet-data "$MODEL_ROOT/face_detection_yunet_2023mar.onnx" \
   /teacher-models/face_detection_yunet_2023mar.onnx
 uvx modal run modal_app.py::verify_teacher_runtime
 
@@ -50,7 +53,7 @@ for name in best.pt last.pt history.json focalnet.onnx focalnet.onnx.json; do
 done
 rm -f "$RUN/evaluation-fp32.json"
 uv run focalnet evaluate "$RUN/focalnet.onnx" \
-  --manifest downloads/splits-v1/val.jsonl \
+  --manifest "$VALIDATION_MANIFEST" \
   --ratios 1 1.7777778 0.8 --threads 4 \
   --output "$RUN/evaluation-fp32.json"
 
