@@ -117,6 +117,28 @@ composition discards a strongly weighted subject.
 The returned human score is a relative logit. Compare it only among crops for
 the same image; it is not a calibrated confidence value.
 
+### Browser demo
+
+A static crop lab under `web/` runs the same format-v2 ONNX in the browser with
+ONNX Runtime Web. Photos stay on-device. The 19.45 MiB weights are gitignored;
+`bun run fetch-model` downloads them from a published artifact URL (or a local
+path / Modal volume). Bun is the package manager, bundler, test runner, and
+local static server. Publish the build with [yeet.page](https://yeet.page/):
+
+```sh
+cd web
+bun install
+bun run fetch-model
+bun test
+bun run dev
+bun run build
+bunx @dittmann/yeet dist
+```
+
+The demo compares the human-ranked crop with the importance-retention crop from
+the same map. A yeet URL is unlisted, not private: anyone with the link can
+download `focalnet-human.onnx`.
+
 ## Training
 
 ### 1. Acquire source images
