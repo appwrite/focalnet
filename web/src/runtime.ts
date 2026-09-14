@@ -1,4 +1,4 @@
-import * as ort from "onnxruntime-web";
+import * as ort from "onnxruntime-web/wasm";
 import {
   generateCandidates,
   letterboxContent,
@@ -16,7 +16,8 @@ import {
 import { Mat } from "./matrix";
 
 export const RETENTION_TOLERANCE = 0.05;
-export const MODEL_URL = `${import.meta.env.BASE_URL}focalnet-human.onnx`;
+export const MODEL_URL = new URL("focalnet-human.onnx", document.baseURI).href;
+export const ORT_WASM_URL = new URL("ort-wasm-simd-threaded.wasm", document.baseURI).href;
 
 export type Prediction = {
   gravity: { x: number; y: number };
@@ -89,6 +90,8 @@ export class HumanCropPredictor {
   static async load(modelUrl = MODEL_URL): Promise<HumanCropPredictor> {
     ort.env.wasm.numThreads = 1;
     ort.env.wasm.simd = true;
+    ort.env.wasm.proxy = false;
+    ort.env.wasm.wasmPaths = { wasm: ORT_WASM_URL };
     const session = await ort.InferenceSession.create(modelUrl, {
       executionProviders: ["wasm"],
       graphOptimizationLevel: "all",

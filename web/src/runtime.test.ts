@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "bun:test";
 import { generateCandidates, letterboxContent } from "./candidates";
 import { Crop, focalPoint, scoreCrop, solveCrop } from "./crop";
 import { coverage, fitLetterbox, prepareImage, projectMap, restoreMap, solidRgba } from "./imaging";
 import { Mat } from "./matrix";
 
 describe("crop", () => {
-  it("uses mass instead of centering on the centroid for multi-subject maps", () => {
+  test("uses mass instead of centering on the centroid for multi-subject maps", () => {
     const heatmap = Mat.zeros(64, 64);
     heatmap.set(30, 6, 4);
     heatmap.set(30, 57, 6);
@@ -23,7 +23,7 @@ describe("crop", () => {
     expect(wide.left).toBe(50);
   });
 
-  it("chooses the center for uniform and empty maps", () => {
+  test("chooses the center for uniform and empty maps", () => {
     const uniform = solveCrop(Mat.fill(8, 8, 1), 1000, 600, 1);
     expect(uniform).toMatchObject({ left: 200, top: 0, width: 600, height: 600 });
     expect(uniform.retained_importance).toBeCloseTo(0.6, 10);
@@ -32,7 +32,7 @@ describe("crop", () => {
     expect(focalPoint(Mat.zeros(8, 8))).toEqual({ x: 0.5, y: 0.5 });
   });
 
-  it("keeps crop position invariant to importance scale", () => {
+  test("keeps crop position invariant to importance scale", () => {
     const heatmap = Mat.zeros(8, 8);
     heatmap.set(2, 6, 1);
     const regular = solveCrop(heatmap, 1000, 500, 1);
@@ -44,7 +44,7 @@ describe("crop", () => {
     expect(scaled.retained_importance).toBeCloseTo(regular.retained_importance, 10);
   });
 
-  it("matches brute-force fractional-cell integration", () => {
+  test("matches brute-force fractional-cell integration", () => {
     let seed = 12;
     const random = () => {
       seed = (seed * 1664525 + 1013904223) >>> 0;
@@ -80,20 +80,20 @@ describe("crop", () => {
     }
   });
 
-  it("ignores invalid activations", () => {
+  test("ignores invalid activations", () => {
     expect(focalPoint(Mat.fromNested([[Number.NaN, Infinity], [-1, 1]]))).toEqual({
       x: 0.75,
       y: 0.75,
     });
   });
 
-  it.each([0, -1, Number.NaN, Infinity])("rejects invalid aspect ratio %s", (ratio) => {
+  test.each([0, -1, Number.NaN, Infinity])("rejects invalid aspect ratio %s", (ratio) => {
     expect(() => solveCrop(Mat.fill(2, 2, 1), 100, 100, ratio)).toThrow(/Aspect ratio/);
   });
 });
 
 describe("candidates", () => {
-  it.each([1, 16 / 9, 4 / 5])(
+  test.each([1, 16 / 9, 4 / 5])(
     "keeps requested pixel ratio and valid bounds for %s",
     (ratio) => {
       const boxes = generateCandidates(1600, 900, ratio);
@@ -128,13 +128,13 @@ describe("candidates", () => {
     },
   );
 
-  it("normalizes letterbox content bounds", () => {
+  test("normalizes letterbox content bounds", () => {
     expect([...letterboxContent(fitLetterbox(1600, 900))]).toEqual([0, 0.21875, 1, 0.78125]);
   });
 });
 
 describe("imaging", () => {
-  it("rounds letterbox dimensions half-up like Go", () => {
+  test("rounds letterbox dimensions half-up like Go", () => {
     const tall = fitLetterbox(512, 257);
     expect(tall.height).toBe(129);
     expect(tall).toMatchObject({ size: 256, left: 0, top: 63, width: 256 });
@@ -147,7 +147,7 @@ describe("imaging", () => {
     });
   });
 
-  it("keeps aspect, alpha, channel order, and neutral padding", () => {
+  test("keeps aspect, alpha, channel order, and neutral padding", () => {
     const { tensor, box } = prepareImage(solidRgba(200, 100, 200, 100, 50, 128));
     expect(box).toMatchObject({ left: 0, top: 64, width: 256, height: 128 });
     expect(tensor.length).toBe(3 * 256 * 256);
@@ -170,7 +170,7 @@ describe("imaging", () => {
     }
   });
 
-  it.each([
+  test.each([
     [199, 301],
     [640, 320],
     [1, 10000],
@@ -188,7 +188,7 @@ describe("imaging", () => {
     expect(restored.max()).toBeCloseTo(0.4, 5);
   });
 
-  it("round-trips letterboxed source coordinates", () => {
+  test("round-trips letterboxed source coordinates", () => {
     const source = Mat.zeros(64, 64);
     for (let row = 0; row < 64; row += 1) {
       for (let col = 0; col < 64; col += 1) {

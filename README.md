@@ -315,18 +315,18 @@ uv run focalnet predict-human artifacts/focalnet-human.onnx photo.jpg \
 
 A static crop lab under `web/` runs the same format-v2 ONNX in the browser with
 ONNX Runtime Web. Photos stay on-device. The 19.45 MiB weights are gitignored;
-`scripts/fetch-model.sh` downloads them from the published artifact URL (or a
-local path / Modal volume), then you can start Vite or publish the build with
-[yeet.page](https://yeet.page/):
+`bun run fetch-model` downloads them from the published artifact URL (or a
+local path / Modal volume). Bun is the package manager, bundler, test runner,
+and local static server. Publish the build with [yeet.page](https://yeet.page/):
 
 ```sh
 cd web
-npm install
-bash scripts/fetch-model.sh
-npm test
-npm run dev
-npm run build
-npx --yes @dittmann/yeet dist
+bun install
+bun run fetch-model
+bun test
+bun run dev
+bun run build
+bunx @dittmann/yeet dist
 ```
 
 The demo compares the human-ranked crop with the importance-retention crop from
