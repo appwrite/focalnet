@@ -311,3 +311,9 @@ paths, and expected dataset hashes before running them in another environment.
 - Dataset rights must be resolved before distributing a trained checkpoint.
 - Model latency depends on the ONNX Runtime build, processor, thread count, and
   surrounding service workload.
+
+## License
+
+FocalNet's source code is available under the [MIT License](LICENSE). This
+license does not grant rights to third-party datasets, teacher model weights, or
+derived model artifacts; review their respective terms before redistribution.

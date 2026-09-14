@@ -14,3 +14,5 @@ jobs:
       - run: uv run --frozen --extra train ruff check .
       - run: uv run --frozen --extra train ruff format --check .
       - run: uv run --frozen --extra train pytest -q
+      - run: uv build --out-dir dist
+      - run: uv run --frozen python scripts/verify-package-license.py dist
