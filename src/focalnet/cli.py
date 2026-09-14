@@ -60,6 +60,38 @@ def parser() -> argparse.ArgumentParser:
     label.add_argument("--provider", choices=["cpu", "coreml", "cuda"], default="cpu")
     label.add_argument("--resume", action="store_true")
 
+    label_vlm = commands.add_parser(
+        "label-vlm", help="Generate heatmaps with an OpenRouter vision model"
+    )
+    label_vlm.add_argument("--images", type=Path, required=True)
+    label_vlm.add_argument("--output", type=Path, required=True)
+    label_vlm.add_argument("--model", default="google/gemini-3.1-flash-lite")
+    label_vlm.add_argument("--api-key", help="OpenRouter key; otherwise OPENROUTER_API_KEY")
+    label_vlm.add_argument("--workers", type=int, default=1)
+    label_vlm.add_argument("--resume", action="store_true")
+
+    bakeoff = commands.add_parser(
+        "bakeoff-vlm", help="Compare OpenRouter models on must-contain crop coverage"
+    )
+    bakeoff.add_argument("--images", type=Path, required=True)
+    bakeoff.add_argument(
+        "--models",
+        nargs="+",
+        default=[
+            "google/gemini-3.1-flash-lite",
+            "openai/gpt-5.6-luna",
+            "anthropic/claude-haiku-4.5",
+        ],
+    )
+    bakeoff.add_argument("--api-key", help="OpenRouter key; otherwise OPENROUTER_API_KEY")
+    bakeoff.add_argument("--ratios", type=aspect_ratio, nargs="+", default=[1, 4 / 5, 9 / 16])
+    bakeoff.add_argument(
+        "--expected",
+        type=Path,
+        help="JSON object mapping filenames to must-contain boxes [x1,y1,x2,y2]",
+    )
+    bakeoff.add_argument("--output", type=Path)
+
     split = commands.add_parser("split", help="Create group-disjoint train/validation manifests")
     split.add_argument("manifest", type=Path)
     split.add_argument("--output", type=Path, required=True)
@@ -242,6 +274,32 @@ def run(args: argparse.Namespace) -> dict:
             provider=args.provider,
             resume=args.resume,
         )
+    if args.command == "label-vlm":
+        from focalnet.vlm_teacher import label_vlm_images
+
+        return label_vlm_images(
+            args.images,
+            args.output,
+            api_key=args.api_key,
+            model=args.model,
+            workers=args.workers,
+            resume=args.resume,
+        )
+    if args.command == "bakeoff-vlm":
+        from focalnet.vlm_teacher import bakeoff_vlm, load_expected_boxes
+
+        result = bakeoff_vlm(
+            args.images,
+            args.models,
+            api_key=args.api_key,
+            ratios=args.ratios,
+            expected=load_expected_boxes(args.expected) if args.expected else None,
+        )
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            with args.output.open("x") as handle:
+                handle.write(json.dumps(result, indent=2) + "\n")
+        return result
     if args.command == "split":
         from focalnet.data import split_manifest
 

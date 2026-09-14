@@ -192,6 +192,25 @@ image distribution, rather than a universal definition of the best crop.
 The command writes float32 maps and a `labels.jsonl` manifest. Repeating it with
 `--resume` retains completed records and skips exact decoded duplicates.
 
+To label action and full-body photos that face-heavy maps crop too tightly,
+ask an OpenRouter vision model for subject boxes and rasterize them into the
+same 64×64 maps. Set `OPENROUTER_API_KEY`. Cheap defaults are Gemini 3.1
+Flash-Lite and GPT-5.6 Luna; Haiku 4.5 is the quality check:
+
+```sh
+uv run focalnet bakeoff-vlm \
+  --images data/fixtures \
+  --models google/gemini-3.1-flash-lite openai/gpt-5.6-luna anthropic/claude-haiku-4.5 \
+  --output artifacts/vlm-bakeoff.json
+
+uv run focalnet label-vlm \
+  --images data/open-images/images \
+  --output data/teacher-vlm \
+  --model google/gemini-3.1-flash-lite
+```
+
+The VLM never runs at inference. Distill the maps with `focalnet train` as usual.
+
 ### 3. Split and train the importance model
 
 ```sh
