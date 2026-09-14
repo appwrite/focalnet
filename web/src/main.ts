@@ -65,8 +65,8 @@ app.innerHTML = `
       </aside>
     </div>
     <p class="note">
-      The ranking head is trained on CPC and GAICD judgments. This preview URL is
-      unlisted, not private: anyone with the link can download the ONNX file.
+      The ranking head is trained on CPC and GAICD judgments. This lab does not
+      ship model weights; load a local ONNX with <code>bun run fetch-model</code>.
     </p>
   </div>
 `;

@@ -16,3 +16,17 @@ jobs:
       - run: uv run --frozen --extra train pytest -q
       - run: uv build --out-dir dist
       - run: uv run --frozen python scripts/verify-package-license.py dist
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - run: bun test
+      - run: bun run build
