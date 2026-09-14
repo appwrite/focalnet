@@ -43,22 +43,28 @@ if (Bun.env.FOCALNET_ONNX) {
 }
 
 if (modelUrl) {
+  const tmp = join(tmpdir(), "focalnet-human.onnx.download");
+  let installed = false;
   try {
     const response = await fetch(modelUrl);
     if (!response.ok) {
       throw new Error(`GET ${modelUrl} → ${response.status}`);
     }
-    const tmp = join(tmpdir(), "focalnet-human.onnx.download");
     await Bun.write(tmp, response);
     await installModel(tmp);
-    await unlink(tmp);
-    process.exit(0);
+    installed = true;
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     if (!allowDummy) {
       throw new Error(detail);
     }
     console.warn(detail);
+  }
+  if (installed) {
+    await unlink(tmp).catch((error) => {
+      console.warn(error instanceof Error ? error.message : error);
+    });
+    process.exit(0);
   }
 }
 
