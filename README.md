@@ -315,7 +315,8 @@ uv run focalnet predict-human artifacts/focalnet-human.onnx photo.jpg \
 
 A static crop lab under `web/` runs the same format-v2 ONNX in the browser with
 ONNX Runtime Web. Photos stay on-device. The 19.45 MiB weights are gitignored;
-fetch them from the Modal volume, then start Vite or publish the build with
+`scripts/fetch-model.sh` downloads them from the published artifact URL (or a
+local path / Modal volume), then you can start Vite or publish the build with
 [yeet.page](https://yeet.page/):
 
 ```sh

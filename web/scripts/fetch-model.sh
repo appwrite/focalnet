@@ -4,6 +4,7 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 dest="$root/web/public/focalnet-human.onnx"
 expected="${FOCALNET_ONNX_SHA256:-59164c601c98cea3f62b25166710831dac63e1a872fc64767c65316ad5385439}"
+model_url="${FOCALNET_ONNX_URL:-https://knowledgeable-sun-ef9f.yeet.page/focalnet-human.onnx}"
 volume_path="/runs/repvit-m0-9-500k-cpc-gaic-lr3e4-candidate/focalnet-human.onnx"
 
 mkdir -p "$(dirname "$dest")"
@@ -14,6 +15,19 @@ hash_file() {
   else
     shasum -a 256 "$1" | awk '{print $1}'
   fi
+}
+
+install_model() {
+  local source="$1"
+  cp "$source" "$dest"
+  local actual
+  actual="$(hash_file "$dest")"
+  if [[ "$actual" != "$expected" ]]; then
+    echo "Model hash $actual does not match $expected" >&2
+    rm -f "$dest"
+    return 1
+  fi
+  echo "Wrote $dest"
 }
 
 if ! command -v uvx >/dev/null && [[ -f "$HOME/.local/bin/env" ]]; then
@@ -36,42 +50,40 @@ if [[ -f "$dest" ]]; then
 fi
 
 if [[ -n "${FOCALNET_ONNX:-}" ]]; then
-  cp "$FOCALNET_ONNX" "$dest"
-  actual="$(hash_file "$dest")"
-  if [[ "$actual" != "$expected" ]]; then
-    echo "FOCALNET_ONNX hash $actual does not match $expected" >&2
-    rm -f "$dest"
-    exit 1
-  fi
-  echo "Copied $FOCALNET_ONNX to $dest"
+  install_model "$FOCALNET_ONNX"
   exit 0
 fi
 
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+download="$tmpdir/focalnet-human.onnx"
+
+if command -v curl >/dev/null; then
+  if curl -fsSL --retry 3 --retry-delay 2 -o "$download" "$model_url"; then
+    install_model "$download"
+    exit 0
+  fi
+elif command -v wget >/dev/null; then
+  if wget -q -O "$download" "$model_url"; then
+    install_model "$download"
+    exit 0
+  fi
+fi
+
 if command -v uvx >/dev/null && [[ "${FOCALNET_ALLOW_DUMMY:-}" != "1" ]]; then
-  tmpdir="$(mktemp -d)"
-  trap 'rm -rf "$tmpdir"' EXIT
   if uvx modal volume get focalnet-data "$volume_path" "$tmpdir"; then
     found="$(find "$tmpdir" -name 'focalnet-human.onnx' -type f | head -n 1)"
     if [[ -z "$found" ]]; then
       echo "Modal volume get did not produce $volume_path" >&2
       exit 1
     fi
-    cp "$found" "$dest"
-    actual="$(hash_file "$dest")"
-    if [[ "$actual" != "$expected" ]]; then
-      echo "Downloaded model hash $actual does not match $expected" >&2
-      rm -f "$dest"
-      exit 1
-    fi
-    echo "Wrote $dest"
+    install_model "$found"
     exit 0
   fi
-  trap - EXIT
-  rm -rf "$tmpdir"
 fi
 
 if [[ "${FOCALNET_ALLOW_DUMMY:-}" != "1" ]]; then
-  echo "Could not fetch the production ONNX. Set FOCALNET_ONNX, authenticate Modal, or FOCALNET_ALLOW_DUMMY=1 for UI layout only." >&2
+  echo "Could not fetch the production ONNX from $model_url. Set FOCALNET_ONNX, authenticate Modal, or FOCALNET_ALLOW_DUMMY=1 for UI layout only." >&2
   exit 1
 fi
 
