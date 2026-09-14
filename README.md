@@ -120,24 +120,26 @@ the same image; it is not a calibrated confidence value.
 ### Browser demo
 
 A static crop lab under `web/` runs the same format-v2 ONNX in the browser with
-ONNX Runtime Web. Photos stay on-device. The 19.45 MiB weights are gitignored;
-`bun run fetch-model` downloads them from a published artifact URL (or a local
-path / Modal volume). Bun is the package manager, bundler, test runner, and
-local static server. Publish the build with [yeet.page](https://yeet.page/):
+ONNX Runtime Web. Photos stay on-device. This repository does not publish a
+checkpoint; the 19.45 MiB weights stay gitignored. Export a model, then point
+the lab at that file. Bun is the package manager, bundler, test runner, and
+local static server:
 
 ```sh
 cd web
 bun install
-bun run fetch-model
+FOCALNET_ONNX=../artifacts/focalnet-human.onnx bun run fetch-model
 bun test
 bun run dev
-bun run build
-bunx @dittmann/yeet dist
 ```
 
-The demo compares the human-ranked crop with the importance-retention crop from
-the same map. A yeet URL is unlisted, not private: anyone with the link can
-download `focalnet-human.onnx`.
+`FOCALNET_ALLOW_DUMMY=1 bun run fetch-model` writes a tiny placeholder for UI
+layout only. Set `FOCALNET_ONNX_SHA256` to verify a known file, or
+`FOCALNET_ONNX_URL` to fetch a checkpoint you already host. Source order is
+existing `web/public/focalnet-human.onnx`, then `FOCALNET_ONNX`, then
+`FOCALNET_ONNX_URL`; dummy mode still runs if a configured URL fails. The demo
+compares the human-ranked crop with the importance-retention crop from the same
+map.
 
 ## Training
 
@@ -289,6 +291,7 @@ to other languages against this implementation.
 uv run --frozen --extra train ruff check .
 uv run --frozen --extra train ruff format --check .
 uv run --frozen --extra train pytest -q
+(cd web && bun install --frozen-lockfile && bun test)
 ```
 
 Tests cover coordinate handling, EXIF orientation, alpha composition, padding,
