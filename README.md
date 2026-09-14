@@ -135,8 +135,11 @@ bun run dev
 
 `FOCALNET_ALLOW_DUMMY=1 bun run fetch-model` writes a tiny placeholder for UI
 layout only. Set `FOCALNET_ONNX_SHA256` to verify a known file, or
-`FOCALNET_ONNX_URL` to fetch a checkpoint you already host. The demo compares
-the human-ranked crop with the importance-retention crop from the same map.
+`FOCALNET_ONNX_URL` to fetch a checkpoint you already host. Source order is
+existing `web/public/focalnet-human.onnx`, then `FOCALNET_ONNX`, then
+`FOCALNET_ONNX_URL`; dummy mode still runs if a configured URL fails. The demo
+compares the human-ranked crop with the importance-retention crop from the same
+map.
 
 ## Training
 
