@@ -194,6 +194,7 @@ def test_openrouter_teacher_parses_json_object(tmp_path):
     assert annotation.subjects[0].label == "dunk"
     assert metadata["model"] == "google/gemini-3.1-flash-lite"
     assert client.calls[0]["json"]["response_format"] == {"type": "json_object"}
+    assert client.calls[0]["json"]["reasoning"] == {"effort": "none"}
     assert client.calls[0]["headers"]["Authorization"] == "Bearer sk-test"
 
 

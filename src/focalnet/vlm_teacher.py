@@ -306,7 +306,9 @@ class OpenRouterTeacher:
         self.retries = retries
         self.client = client
 
-    def _payload(self, image: Image.Image, *, json_object: bool) -> dict:
+    def _payload(
+        self, image: Image.Image, *, json_object: bool, reasoning: bool = True
+    ) -> dict:
         payload = {
             "model": self.model,
             "temperature": 0,
@@ -322,6 +324,8 @@ class OpenRouterTeacher:
         }
         if json_object:
             payload["response_format"] = {"type": "json_object"}
+        if reasoning:
+            payload["reasoning"] = {"effort": "none"}
         return payload
 
     def complete(self, image: Image.Image) -> tuple[VlmAnnotation, dict]:
@@ -347,6 +351,9 @@ class OpenRouterTeacher:
                 status = getattr(getattr(exc, "response", None), "status_code", None)
                 if status == 400 and payload.get("response_format"):
                     payload = self._payload(image, json_object=False)
+                    continue
+                if status == 400 and payload.get("reasoning"):
+                    payload = self._payload(image, json_object=False, reasoning=False)
                     continue
                 retryable = status in {429, 500, 502, 503, 504} or isinstance(
                     exc, httpx.TimeoutException
