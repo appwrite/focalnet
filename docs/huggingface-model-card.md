@@ -25,17 +25,12 @@ The reference RepViT-M0.9 ranker has 4.76 million parameters. The published
 These photographs come from [Autogravity](https://github.com/appwrite/autogravity).
 A centered 1:1 crop of the park scene keeps grass. FocalNet keeps the dog.
 
-![Golden retriever sitting on the left side of a park](images/golden-retriever-original.jpg)
+![Center 1:1 crop of empty grass versus FocalNet 1:1 crop of the golden retriever](images/comparison-retriever.png)
 
-| Center crop | FocalNet 1:1 |
-| --- | --- |
-| ![Centered crop of empty grass](images/golden-retriever-center.jpg) | ![FocalNet crop keeping the dog](images/golden-retriever-focalnet.jpg) |
+On a two-person portrait, FocalNet holds the nearer subject instead of splitting
+the frame.
 
-On a wide portrait it tightens around the face instead of the torso.
-
-| Source | FocalNet 1:1 |
-| --- | --- |
-| ![Portrait in a courtyard](images/portrait-original.jpg) | ![FocalNet crop around the face](images/portrait-focalnet.jpg) |
+![Center 1:1 crop versus FocalNet 1:1 crop of a two-person portrait](images/comparison-faces.png)
 
 ## Files
 
