@@ -151,10 +151,10 @@ def prepare_staging(
     copy_file(card, staging / "README.md")
     for name, source in sources.items():
         copy_file(source, staging / name)
-        if name in expected:
-            require_hash(staging / name, expected[name])
-        if name in ONNX_SIDECARS:
-            require_sidecar(staging / name, staging / ONNX_SIDECARS[name], read_metadata)
+    for name, digest in expected.items():
+        require_hash(staging / name, digest)
+    for onnx_name, sidecar_name in ONNX_SIDECARS.items():
+        require_sidecar(staging / onnx_name, staging / sidecar_name, read_metadata)
     for picture in pictures:
         copy_file(picture, staging / "images" / picture.name)
 
