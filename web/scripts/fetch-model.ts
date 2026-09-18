@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 export const HUB_REPO = "appwrite/focalnet";
 export const DEFAULT_ONNX_URL =
-  `https://huggingface.co/${HUB_REPO}/resolve/main/focalnet-human.onnx`;
+  "https://huggingface.co/appwrite/focalnet/resolve/main/focalnet-human.onnx";
 export const DEFAULT_ONNX_SHA256 =
   "59164c601c98cea3f62b25166710831dac63e1a872fc64767c65316ad5385439";
 
