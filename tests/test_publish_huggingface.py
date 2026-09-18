@@ -26,6 +26,11 @@ def test_model_card_declares_hub_metadata_and_reference_hashes():
         assert field in card
     for digest in publisher.EXPECTED_SHA256.values():
         assert digest in card
+    assert "Microsoft FocalNet" not in card
+    images = publisher.image_files(REPO / "docs" / "hub-images")
+    assert images
+    for picture in images:
+        assert f"images/{picture.name}" in card
 
 
 def test_reference_hashes_match_docs_and_fetch_script():
@@ -64,18 +69,27 @@ def test_prepare_staging_renames_checkpoints_and_rejects_hash_mismatch(tmp_path)
         "focalnet-human.onnx": publisher.sha256_file(human / "focalnet-human.onnx"),
         "focalnet-human.pt": publisher.sha256_file(human / "best.pt"),
     }
+    pictures = tmp_path / "images"
+    pictures.mkdir()
+    (pictures / "example.jpg").write_bytes(b"jpeg-bytes")
     card = tmp_path / "card.md"
-    card.write_text("\n".join(expected.values()))
+    card.write_text("\n".join([*expected.values(), "images/example.jpg"]))
     staging = tmp_path / "hub"
-    staged = publisher.prepare_staging(importance, human, card, staging, expected=expected)
+    staged = publisher.prepare_staging(
+        importance, human, card, staging, expected=expected, images_dir=pictures
+    )
     assert (staging / "focalnet.pt").read_bytes() == b"importance-pt"
     assert (staging / "focalnet-human.pt").read_bytes() == b"human-pt"
+    assert (staging / "images" / "example.jpg").read_bytes() == b"jpeg-bytes"
     assert staged["focalnet.onnx"] == expected["focalnet.onnx"]
     assert staged["focalnet-human.pt"] == expected["focalnet-human.pt"]
+    assert staged["images/example.jpg"] == publisher.sha256_file(pictures / "example.jpg")
 
     (human / "focalnet-human.onnx").write_bytes(b"tampered")
     try:
-        publisher.prepare_staging(importance, human, card, staging, expected=expected)
+        publisher.prepare_staging(
+            importance, human, card, staging, expected=expected, images_dir=pictures
+        )
     except ValueError as exc:
         assert "does not match" in str(exc)
     else:

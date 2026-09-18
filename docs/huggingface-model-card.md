@@ -14,13 +14,28 @@ base_model: timm/repvit_m0_9
 
 Appwrite FocalNet is a compact vision model for content-aware image cropping. It
 predicts a 64×64 importance map, then ranks crop candidates with a small
-composition head trained on human preferences.
-
-This is **not** Microsoft FocalNet (the hierarchical attention backbone in
-`timm`). Training code lives in [appwrite/focalnet](https://github.com/appwrite/focalnet).
+composition head trained on human preferences. Training code lives in
+[appwrite/focalnet](https://github.com/appwrite/focalnet).
 
 The reference RepViT-M0.9 ranker has 4.76 million parameters. The published
 `focalnet-human.onnx` artifact is 19.45 MiB in FP32.
+
+## Examples
+
+These photographs come from [Autogravity](https://github.com/appwrite/autogravity).
+A centered 1:1 crop of the park scene keeps grass. FocalNet keeps the dog.
+
+![Golden retriever sitting on the left side of a park](images/golden-retriever-original.jpg)
+
+| Center crop | FocalNet 1:1 |
+| --- | --- |
+| ![Centered crop of empty grass](images/golden-retriever-center.jpg) | ![FocalNet crop keeping the dog](images/golden-retriever-focalnet.jpg) |
+
+On a wide portrait it tightens around the face instead of the torso.
+
+| Source | FocalNet 1:1 |
+| --- | --- |
+| ![Portrait in a courtyard](images/portrait-original.jpg) | ![FocalNet crop around the face](images/portrait-focalnet.jpg) |
 
 ## Files
 

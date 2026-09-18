@@ -9,6 +9,8 @@ from pathlib import Path
 
 REPO_ID = "appwrite/focalnet"
 DEFAULT_CARD = Path("docs/huggingface-model-card.md")
+DEFAULT_IMAGES = Path("docs/hub-images")
+IMAGE_SUFFIXES = {".gif", ".jpeg", ".jpg", ".png", ".webp"}
 EXPECTED_SHA256 = {
     "focalnet.onnx": "87becceb269a2973c359df789783be49a9f840f47170a015d3776d7c4145a2ce",
     "focalnet.pt": "d1942f0652f8ea85f75ffc0cb1bf40d7e70b38e7ad102ab0e6df5c2e07ce52cf",
@@ -44,20 +46,41 @@ def copy_file(source: Path, destination: Path) -> None:
     shutil.copy2(source, destination)
 
 
+def image_files(images_dir: Path) -> list[Path]:
+    if not images_dir.is_dir():
+        return []
+    return sorted(
+        path
+        for path in images_dir.iterdir()
+        if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES
+    )
+
+
+def staged_paths(staging: Path) -> list[str]:
+    return sorted(str(path.relative_to(staging)) for path in staging.rglob("*") if path.is_file())
+
+
 def prepare_staging(
     importance_dir: Path,
     human_dir: Path,
     card: Path,
     staging: Path,
     expected: dict[str, str] | None = None,
+    images_dir: Path | None = None,
 ) -> dict[str, str]:
     expected = EXPECTED_SHA256 if expected is None else expected
+    images_dir = DEFAULT_IMAGES if images_dir is None else images_dir
     if not card.is_file():
         raise FileNotFoundError(f"Missing model card: {card}")
     card_text = card.read_text()
     for digest in expected.values():
         if digest not in card_text:
             raise ValueError(f"Model card is missing expected hash {digest}")
+    pictures = image_files(images_dir)
+    for picture in pictures:
+        reference = f"images/{picture.name}"
+        if reference not in card_text:
+            raise ValueError(f"Model card is missing image {reference}")
 
     sources = {
         "focalnet.onnx": importance_dir / "focalnet.onnx",
@@ -78,15 +101,17 @@ def prepare_staging(
         copy_file(source, staging / name)
         if name in expected:
             require_hash(staging / name, expected[name])
+    for picture in pictures:
+        copy_file(picture, staging / "images" / picture.name)
 
-    staged = {name: sha256_file(staging / name) for name in ("README.md", *HUB_WEIGHTS)}
-    missing = [name for name in ("README.md", *HUB_WEIGHTS) if not (staging / name).is_file()]
+    allowed = {"README.md", *HUB_WEIGHTS, *(f"images/{picture.name}" for picture in pictures)}
+    missing = [name for name in allowed if not (staging / name).is_file()]
     if missing:
         raise FileNotFoundError(f"Staging is missing {missing}")
-    extra = sorted(path.name for path in staging.iterdir() if path.name not in staged)
+    extra = [name for name in staged_paths(staging) if name not in allowed]
     if extra:
         raise ValueError(f"Unexpected staged files: {extra}")
-    return staged
+    return {name: sha256_file(staging / name) for name in allowed}
 
 
 def upload_staging(staging: Path, repo_id: str = REPO_ID, *, token: str | None = None) -> str:
@@ -102,8 +127,8 @@ def upload_staging(staging: Path, repo_id: str = REPO_ID, *, token: str | None =
         folder_path=str(staging),
         repo_id=repo_id,
         repo_type="model",
-        commit_message="Publish FocalNet ONNX and PyTorch checkpoints",
-        allow_patterns=["README.md", *HUB_WEIGHTS],
+        commit_message="Publish FocalNet checkpoints, model card, and examples",
+        allow_patterns=["README.md", "images/*", *HUB_WEIGHTS],
     )
     return getattr(commit, "oid", str(commit))
 
@@ -113,6 +138,7 @@ def parser() -> argparse.ArgumentParser:
     root.add_argument("--importance-dir", type=Path, required=True)
     root.add_argument("--human-dir", type=Path, required=True)
     root.add_argument("--card", type=Path, default=DEFAULT_CARD)
+    root.add_argument("--images-dir", type=Path, default=DEFAULT_IMAGES)
     root.add_argument("--staging", type=Path, required=True)
     root.add_argument("--repo-id", default=REPO_ID)
     root.add_argument("--upload", action="store_true")
@@ -121,7 +147,13 @@ def parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     args = parser().parse_args()
-    staged = prepare_staging(args.importance_dir, args.human_dir, args.card, args.staging)
+    staged = prepare_staging(
+        args.importance_dir,
+        args.human_dir,
+        args.card,
+        args.staging,
+        images_dir=args.images_dir,
+    )
     for name, digest in staged.items():
         print(f"{digest}  {name}")
     if not args.upload:
