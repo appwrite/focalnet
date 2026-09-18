@@ -80,4 +80,6 @@ best.pt        d1942f0652f8ea85f75ffc0cb1bf40d7e70b38e7ad102ab0e6df5c2e07ce52cf
 
 These files are published at
 [huggingface.co/appwrite/focalnet](https://huggingface.co/appwrite/focalnet)
+and the
+[2026-09-14-rc1 GitHub release](https://github.com/appwrite/focalnet/releases/tag/2026-09-14-rc1)
 as `focalnet.onnx` and `focalnet.pt`. They stay gitignored in this repository.

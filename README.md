@@ -11,9 +11,11 @@ model. The reference RepViT-M0.9 artifact has 4.76 million parameters and is
 
 > [!IMPORTANT]
 > Pretrained ONNX and PyTorch checkpoints are on
-> [Hugging Face](https://huggingface.co/appwrite/focalnet). The CPC and GAICD
-> archives reviewed during development do not state explicit image or annotation
-> licenses; the published weights do not grant rights to those datasets.
+> [Hugging Face](https://huggingface.co/appwrite/focalnet) and the
+> [2026-09-14-rc1 GitHub release](https://github.com/appwrite/focalnet/releases/tag/2026-09-14-rc1).
+> The CPC and GAICD archives reviewed during development do not state explicit
+> image or annotation licenses; the published weights do not grant rights to
+> those datasets.
 
 ## How it works
 
@@ -98,6 +100,7 @@ aspect-aware crop:
 
 ```sh
 hf download appwrite/focalnet --local-dir artifacts
+# or: gh release download 2026-09-14-rc1 --repo appwrite/focalnet --dir artifacts
 uv run focalnet predict artifacts/focalnet.onnx photo.jpg \
   --aspect-ratio 16:9 \
   --heatmap artifacts/photo-importance.npy
@@ -322,7 +325,8 @@ them in another environment.
 ## License
 
 FocalNet's source code and the published checkpoints on
-[Hugging Face](https://huggingface.co/appwrite/focalnet) are available under the
-[MIT License](LICENSE). This license does not grant rights to third-party
-datasets or teacher model weights; review their respective terms before
-redistribution.
+[Hugging Face](https://huggingface.co/appwrite/focalnet) and the
+[GitHub release](https://github.com/appwrite/focalnet/releases/tag/2026-09-14-rc1)
+are available under the [MIT License](LICENSE). This license does not grant
+rights to third-party datasets or teacher model weights; review their
+respective terms before redistribution.

@@ -102,7 +102,9 @@ GAIC.zip              b895a3f9e03c8f70c37194370441dc2f17bb60e0ab437447ee240b003c
 
 The ranking checkpoint identified by these hashes is published at
 [huggingface.co/appwrite/focalnet](https://huggingface.co/appwrite/focalnet)
+and the
+[2026-09-14-rc1 GitHub release](https://github.com/appwrite/focalnet/releases/tag/2026-09-14-rc1)
 as `focalnet-human.onnx` and `focalnet-human.pt`. Dataset archives stay off the
-Hub. Neither reviewed CPC nor GAICD archive states an explicit license for its
-images or annotations; the published weights do not grant rights to those
-datasets.
+Hub and the release. Neither reviewed CPC nor GAICD archive states an explicit
+license for its images or annotations; the published weights do not grant rights
+to those datasets.
