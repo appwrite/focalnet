@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import numpy as np
@@ -9,8 +10,24 @@ from PIL import Image, ImageDraw, ImageFont
 
 from focalnet.human_runtime import HumanCropPredictor
 
-FONT_MEDIUM = Path("/usr/share/fonts/truetype/macos/Inter-Medium.ttf")
-FONT_SEMIBOLD = Path("/usr/share/fonts/truetype/macos/Inter-SemiBold.ttf")
+REPO = Path(__file__).resolve().parents[1]
+REGULAR_FONTS = (
+    Path("/usr/share/fonts/truetype/macos/Inter-Medium.ttf"),
+    Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+    Path("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
+)
+BOLD_FONTS = (
+    Path("/usr/share/fonts/truetype/macos/Inter-SemiBold.ttf"),
+    Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
+    Path("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"),
+)
+COMPARISONS = (
+    ("golden-retriever-original.jpg", 1.0, "1:1", "comparison-retriever.png", False),
+    ("multiple-faces.jpg", 1.0, "1:1", "comparison-faces.png", False),
+)
+
+FONT_MEDIUM = REGULAR_FONTS[0]
+FONT_SEMIBOLD = BOLD_FONTS[0]
 
 BG = (246, 247, 249, 255)
 INK = (17, 18, 23, 255)
@@ -22,6 +39,14 @@ GAP = 16
 LABEL_H = 40
 RADIUS = 20
 CROP_SIZE = 460
+
+
+def resolve_font(*candidates: Path) -> Path:
+    for path in candidates:
+        if path.is_file():
+            return path
+    names = ", ".join(str(path) for path in candidates)
+    raise FileNotFoundError(f"No usable TTF font among: {names}")
 
 
 def font(path: Path, size: int) -> ImageFont.FreeTypeFont:
@@ -202,16 +227,38 @@ def render_comparison(
     print(f"wrote {output} {figure.size} {output.stat().st_size / 1024:.0f} KiB")
 
 
+def parser() -> argparse.ArgumentParser:
+    root = argparse.ArgumentParser(description="Render Hub model-card comparison figures")
+    root.add_argument("--model", type=Path, required=True, help="Path to focalnet-human.onnx")
+    root.add_argument("--photos-dir", type=Path, required=True, help="Directory of source JPEGs")
+    root.add_argument("--output-dir", type=Path, default=REPO / "docs" / "hub-images")
+    root.add_argument("--font", type=Path, help="Regular TTF for panel labels")
+    root.add_argument("--font-bold", type=Path, help="Bold TTF for crop captions")
+    return root
+
+
 def main() -> None:
-    human = HumanCropPredictor("/tmp/focalnet-hub-staging/focalnet-human.onnx")
-    photos = Path("/tmp/autogravity-photos")
-    out = Path("/tmp/hub-comparisons")
-    jobs = [
-        (photos / "golden-retriever-original.jpg", 1.0, "1:1", "comparison-retriever.png", False),
-        (photos / "multiple-faces.jpg", 1.0, "1:1", "comparison-faces.png", False),
-    ]
-    for source, aspect, label, name, heat in jobs:
-        render_comparison(source, human, aspect, label, out / name, heatmap=heat)
+    global FONT_MEDIUM, FONT_SEMIBOLD
+    args = parser().parse_args()
+    FONT_MEDIUM = args.font if args.font is not None else resolve_font(*REGULAR_FONTS)
+    FONT_SEMIBOLD = args.font_bold if args.font_bold is not None else resolve_font(*BOLD_FONTS)
+    if not FONT_MEDIUM.is_file():
+        raise FileNotFoundError(f"Missing regular font: {FONT_MEDIUM}")
+    if not FONT_SEMIBOLD.is_file():
+        raise FileNotFoundError(f"Missing bold font: {FONT_SEMIBOLD}")
+    human = HumanCropPredictor(args.model)
+    for name, aspect, label, output_name, heat in COMPARISONS:
+        source = args.photos_dir / name
+        if not source.is_file():
+            raise FileNotFoundError(f"Missing source photograph: {source}")
+        render_comparison(
+            source,
+            human,
+            aspect,
+            label,
+            args.output_dir / output_name,
+            heatmap=heat,
+        )
 
 
 if __name__ == "__main__":

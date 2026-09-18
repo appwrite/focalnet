@@ -99,8 +99,11 @@ Download the published checkpoints, then predict an importance map and an
 aspect-aware crop:
 
 ```sh
-hf download appwrite/focalnet --local-dir artifacts
-# or: gh release download 2026-09-14-rc1 --repo appwrite/focalnet --dir artifacts
+mkdir -p artifacts
+curl -fsSL \
+  "https://huggingface.co/appwrite/focalnet/resolve/main/focalnet.onnx" \
+  -o artifacts/focalnet.onnx
+# same file: https://github.com/appwrite/focalnet/releases/download/2026-09-14-rc1/focalnet.onnx
 uv run focalnet predict artifacts/focalnet.onnx photo.jpg \
   --aspect-ratio 16:9 \
   --heatmap artifacts/photo-importance.npy
@@ -140,11 +143,12 @@ bun run dev
 ```
 
 Override the source with `FOCALNET_ONNX` (local file) or `FOCALNET_ONNX_URL`.
-`FOCALNET_ONNX_SHA256` defaults to the published ranking-model hash. Source
-order is existing `web/public/focalnet-human.onnx`, then `FOCALNET_ONNX`, then
-the Hub URL. `FOCALNET_ALLOW_DUMMY=1` writes a tiny placeholder for UI layout
-only if a configured source is missing or fails. The demo compares the
-human-ranked crop with the importance-retention crop from the same map.
+`FOCALNET_ONNX_SHA256` defaults to the published ranking-model hash, including
+when the variable is set but empty. Source order is existing
+`web/public/focalnet-human.onnx`, then `FOCALNET_ONNX`, then the Hub URL.
+`FOCALNET_ALLOW_DUMMY=1` writes a tiny placeholder for UI layout only if a
+configured source is missing or fails. The demo compares the human-ranked crop
+with the importance-retention crop from the same map.
 
 ## Training
 

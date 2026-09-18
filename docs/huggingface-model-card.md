@@ -52,7 +52,10 @@ training, not for the ONNX Runtime path.
 Download the ranking model and crop a photo:
 
 ```sh
-hf download appwrite/focalnet focalnet-human.onnx --local-dir artifacts
+mkdir -p artifacts
+curl -fsSL \
+  "https://huggingface.co/appwrite/focalnet/resolve/main/focalnet-human.onnx" \
+  -o artifacts/focalnet-human.onnx
 uv run focalnet predict-human artifacts/focalnet-human.onnx photo.jpg \
   --aspect-ratio 16:9
 ```
@@ -60,17 +63,25 @@ uv run focalnet predict-human artifacts/focalnet-human.onnx photo.jpg \
 From Python:
 
 ```python
-from huggingface_hub import hf_hub_download
+from pathlib import Path
+from urllib.request import urlretrieve
+
 from focalnet.human_runtime import HumanCropPredictor
 
-path = hf_hub_download("appwrite/focalnet", "focalnet-human.onnx")
+url = "https://huggingface.co/appwrite/focalnet/resolve/main/focalnet-human.onnx"
+path = Path("artifacts/focalnet-human.onnx")
+path.parent.mkdir(parents=True, exist_ok=True)
+urlretrieve(url, path)
 crop = HumanCropPredictor(path).predict("photo.jpg", aspect_ratio=16 / 9)
 ```
 
 Importance-only inference:
 
 ```sh
-hf download appwrite/focalnet focalnet.onnx --local-dir artifacts
+mkdir -p artifacts
+curl -fsSL \
+  "https://huggingface.co/appwrite/focalnet/resolve/main/focalnet.onnx" \
+  -o artifacts/focalnet.onnx
 uv run focalnet predict artifacts/focalnet.onnx photo.jpg --aspect-ratio 16:9
 ```
 

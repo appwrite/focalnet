@@ -12,12 +12,27 @@ export const DEFAULT_ONNX_SHA256 =
 const root = join(import.meta.dir, "..", "..");
 const dest = join(root, "web", "public", "focalnet-human.onnx");
 
-export async function fetchModel(env: typeof Bun.env = Bun.env): Promise<string> {
-  const expected = env.FOCALNET_ONNX_SHA256 ?? DEFAULT_ONNX_SHA256;
-  const modelUrl = env.FOCALNET_ONNX_URL ?? DEFAULT_ONNX_URL;
+export type FetchModelEnv = {
+  FOCALNET_ONNX_SHA256?: string;
+  FOCALNET_ONNX_URL?: string;
+  FOCALNET_ONNX?: string;
+  FOCALNET_ALLOW_DUMMY?: string;
+};
+
+export function resolvedHash(value: string | undefined): string {
+  const trimmed = value?.trim() ?? "";
+  return trimmed || DEFAULT_ONNX_SHA256;
+}
+
+export async function fetchModel(
+  env: FetchModelEnv = Bun.env,
+  destPath = dest,
+): Promise<string> {
+  const expected = resolvedHash(env.FOCALNET_ONNX_SHA256);
+  const modelUrl = env.FOCALNET_ONNX_URL?.trim() || DEFAULT_ONNX_URL;
   const allowDummy = env.FOCALNET_ALLOW_DUMMY === "1";
 
-  await mkdir(join(dest, ".."), { recursive: true });
+  await mkdir(join(destPath, ".."), { recursive: true });
 
   async function sha256(path: string): Promise<string> {
     const hasher = new Bun.CryptoHasher("sha256");
@@ -26,24 +41,28 @@ export async function fetchModel(env: typeof Bun.env = Bun.env): Promise<string>
   }
 
   async function installModel(source: string): Promise<string> {
-    await Bun.write(dest, Bun.file(source));
-    const actual = await sha256(dest);
-    if (expected && actual !== expected) {
-      await unlink(dest);
+    await Bun.write(destPath, Bun.file(source));
+    const actual = await sha256(destPath);
+    if (actual !== expected) {
+      await unlink(destPath);
       throw new Error(`Model hash ${actual} does not match ${expected}`);
     }
-    console.log(`Wrote ${dest} (${actual})`);
+    console.log(`Wrote ${destPath} (${actual})`);
     return actual;
   }
 
-  if (await Bun.file(dest).exists()) {
-    const actual = await sha256(dest);
-    if (!expected || actual === expected || allowDummy) {
-      console.log(`Using existing model at ${dest} (${actual})`);
+  if (await Bun.file(destPath).exists()) {
+    const actual = await sha256(destPath);
+    if (actual === expected) {
+      console.log(`Using existing model at ${destPath} (${actual})`);
+      return actual;
+    }
+    if (allowDummy) {
+      console.log(`Using existing model at ${destPath} (${actual})`);
       return actual;
     }
     console.warn(`Existing model hash ${actual} does not match ${expected}; replacing`);
-    await unlink(dest);
+    await unlink(destPath);
   }
 
   if (env.FOCALNET_ONNX) {
@@ -51,7 +70,7 @@ export async function fetchModel(env: typeof Bun.env = Bun.env): Promise<string>
   }
 
   if (modelUrl) {
-    const tmp = join(tmpdir(), "focalnet-human.onnx.download");
+    const tmp = join(tmpdir(), `focalnet-human-${crypto.randomUUID()}.onnx.download`);
     let installed = false;
     try {
       const response = await fetch(modelUrl);
@@ -74,6 +93,8 @@ export async function fetchModel(env: typeof Bun.env = Bun.env): Promise<string>
         throw new Error(detail);
       }
       console.warn(detail);
+    } finally {
+      await unlink(tmp).catch(() => undefined);
     }
   }
 
@@ -93,7 +114,7 @@ export async function fetchModel(env: typeof Bun.env = Bun.env): Promise<string>
     throw new Error("Dummy ONNX export failed");
   }
   console.log("Wrote dummy ONNX for local UI testing; do not publish this file");
-  return sha256(dest);
+  return sha256(destPath);
 }
 
 if (import.meta.main) {
