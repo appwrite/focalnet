@@ -100,7 +100,11 @@ CPCDataset.tar.gz     dfa4ec73c9d9b4b525a8f79aee5670fac4797bad2eb1bd0e1f26f051ac
 GAIC.zip              b895a3f9e03c8f70c37194370441dc2f17bb60e0ab437447ee240b003cd6550b
 ```
 
-The files identified by these hashes are not distributed in this repository.
-Neither reviewed dataset archive states an explicit license for its images or
-annotations. Confirm training and model redistribution rights before publishing
-a derived checkpoint.
+The ranking checkpoint identified by these hashes is published at
+[huggingface.co/appwrite/focalnet](https://huggingface.co/appwrite/focalnet)
+and the
+[2026-09-14-rc1 GitHub release](https://github.com/appwrite/focalnet/releases/tag/2026-09-14-rc1)
+as `focalnet-human.onnx` and `focalnet-human.pt`. Dataset archives stay off the
+Hub and the release. Neither reviewed CPC nor GAICD archive states an explicit
+license for its images or annotations; the published weights do not grant rights
+to those datasets.

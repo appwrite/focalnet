@@ -10,10 +10,12 @@ model. The reference RepViT-M0.9 artifact has 4.76 million parameters and is
 19.45 MiB in FP32.
 
 > [!IMPORTANT]
-> This repository contains research and training code. It does not distribute a
-> pretrained checkpoint. The CPC and GAICD archives reviewed during development
-> do not state explicit image or annotation licenses; confirm training and model
-> redistribution rights before publishing a derived checkpoint.
+> Pretrained ONNX and PyTorch checkpoints are on
+> [Hugging Face](https://huggingface.co/appwrite/focalnet) and the
+> [2026-09-14-rc1 GitHub release](https://github.com/appwrite/focalnet/releases/tag/2026-09-14-rc1).
+> The CPC and GAICD archives reviewed during development do not state explicit
+> image or annotation licenses; the published weights do not grant rights to
+> those datasets.
 
 ## How it works
 
@@ -93,9 +95,15 @@ ONNX Runtime, so a runtime-only environment can use `pip install .`.
 
 ## Inference
 
-Predict an importance map and an aspect-aware crop:
+Download the published checkpoints, then predict an importance map and an
+aspect-aware crop:
 
 ```sh
+mkdir -p artifacts
+curl -fsSL \
+  "https://huggingface.co/appwrite/focalnet/resolve/main/focalnet.onnx" \
+  -o artifacts/focalnet.onnx
+# same file: https://github.com/appwrite/focalnet/releases/download/2026-09-14-rc1/focalnet.onnx
 uv run focalnet predict artifacts/focalnet.onnx photo.jpg \
   --aspect-ratio 16:9 \
   --heatmap artifacts/photo-importance.npy
@@ -120,26 +128,27 @@ the same image; it is not a calibrated confidence value.
 ### Browser demo
 
 A static crop lab under `web/` runs the same format-v2 ONNX in the browser with
-ONNX Runtime Web. Photos stay on-device. This repository does not publish a
-checkpoint; the 19.45 MiB weights stay gitignored. Export a model, then point
-the lab at that file. Bun is the package manager, bundler, test runner, and
-local static server:
+ONNX Runtime Web. Photos stay on-device. The 19.45 MiB weights stay gitignored;
+`bun run fetch-model` downloads `focalnet-human.onnx` from
+[Hugging Face](https://huggingface.co/appwrite/focalnet) and verifies the
+published SHA-256. Bun is the package manager, bundler, test runner, and local
+static server:
 
 ```sh
 cd web
 bun install
-FOCALNET_ONNX=../artifacts/focalnet-human.onnx bun run fetch-model
+bun run fetch-model
 bun test
 bun run dev
 ```
 
-`FOCALNET_ALLOW_DUMMY=1 bun run fetch-model` writes a tiny placeholder for UI
-layout only. Set `FOCALNET_ONNX_SHA256` to verify a known file, or
-`FOCALNET_ONNX_URL` to fetch a checkpoint you already host. Source order is
-existing `web/public/focalnet-human.onnx`, then `FOCALNET_ONNX`, then
-`FOCALNET_ONNX_URL`; dummy mode still runs if a configured URL fails. The demo
-compares the human-ranked crop with the importance-retention crop from the same
-map.
+Override the source with `FOCALNET_ONNX` (local file) or `FOCALNET_ONNX_URL`.
+`FOCALNET_ONNX_SHA256` defaults to the published ranking-model hash, including
+when the variable is set but empty. Source order is existing
+`web/public/focalnet-human.onnx`, then `FOCALNET_ONNX`, then the Hub URL.
+`FOCALNET_ALLOW_DUMMY=1` writes a tiny placeholder for UI layout only if a
+configured source is missing or fails. The demo compares the human-ranked crop
+with the importance-retention crop from the same map.
 
 ## Training
 
@@ -300,8 +309,9 @@ crop optimization, and ONNX parity. They use synthetic inputs and do not require
 teacher models or pretrained weights.
 
 `modal_app.py` and the scripts in `scripts/` provide reference workflows for
-remote data preparation and GPU training. Review their resource names, storage
-paths, and expected dataset hashes before running them in another environment.
+remote data preparation, GPU training, and Hugging Face publishing. Review
+their resource names, storage paths, and expected dataset hashes before running
+them in another environment.
 
 ## Limitations
 
@@ -311,12 +321,16 @@ paths, and expected dataset hashes before running them in another environment.
 - The GAICD test split was inspected during several development iterations, so
   it should be treated as an engineering benchmark rather than an untouched
   final test.
-- Dataset rights must be resolved before distributing a trained checkpoint.
+- CPC and GAICD archives do not state explicit licenses; published checkpoints
+  do not grant rights to those datasets.
 - Model latency depends on the ONNX Runtime build, processor, thread count, and
   surrounding service workload.
 
 ## License
 
-FocalNet's source code is available under the [MIT License](LICENSE). This
-license does not grant rights to third-party datasets, teacher model weights, or
-derived model artifacts; review their respective terms before redistribution.
+FocalNet's source code and the published checkpoints on
+[Hugging Face](https://huggingface.co/appwrite/focalnet) and the
+[GitHub release](https://github.com/appwrite/focalnet/releases/tag/2026-09-14-rc1)
+are available under the [MIT License](LICENSE). This license does not grant
+rights to third-party datasets or teacher model weights; review their
+respective terms before redistribution.

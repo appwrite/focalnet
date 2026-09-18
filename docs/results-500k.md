@@ -78,4 +78,8 @@ focalnet.onnx  87becceb269a2973c359df789783be49a9f840f47170a015d3776d7c4145a2ce
 best.pt        d1942f0652f8ea85f75ffc0cb1bf40d7e70b38e7ad102ab0e6df5c2e07ce52cf
 ```
 
-The files identified by these hashes are not distributed in this repository.
+These files are published at
+[huggingface.co/appwrite/focalnet](https://huggingface.co/appwrite/focalnet)
+and the
+[2026-09-14-rc1 GitHub release](https://github.com/appwrite/focalnet/releases/tag/2026-09-14-rc1)
+as `focalnet.onnx` and `focalnet.pt`. They stay gitignored in this repository.
